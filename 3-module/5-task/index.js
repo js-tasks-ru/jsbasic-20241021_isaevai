@@ -1,3 +1,12 @@
 function getMinMax(str) {
-  // ваш код...
+   let arr = str.split(' ');
+   arr = arr.filter(item => isFinite(item))
+   
+   let min = Math.min(...arr);
+   let max = Math.max(...arr);
+   
+   return {
+    min,
+    max,
+   }
 }
