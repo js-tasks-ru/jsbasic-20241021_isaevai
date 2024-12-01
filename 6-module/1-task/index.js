@@ -13,35 +13,56 @@
  *
  */
 export default class UserTable {
-  constructor(rows) {
-    this.elem = document.createElement('table');
+  #rows;
+  #elem;
 
-    const thead = document.createElement('thead');
-    thead.innerHTML = `
-     <tr>
-            <th>Имя</th>
-            <th>Возраст</th>
-            <th>Зарплата</th>
-            <th>Город</th>
-            <th></th>
-        </tr>
-    `;
-    this.elem.appendChild(thead);
-    const tbody = document.createElement('tbody');
-    this.elem.appendChild(tbody);
-    rows.forEach(row => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-         <td>${row.name}</td>
-            <td>${row.age}</td>
-            <td>${row.salary}</td>
-            <td>${row.city}</td>
-            <td><button>X</button></td>
-      `;
-      tr.querySelector('button').addEventListener('click', () => {
-        tr.remove();
-      });
-      tbody.appendChild(tr);
-    });
+  constructor(rows) {
+    this.#rows = rows;
+    this.#elem = this.#render();
   }
+
+  get elem() {
+    return this.#elem;
+  } 
+
+  #createUserTable() {
+    let userData = `      
+    <thead>
+      <tr>
+        <th>Имя</th>
+        <th>Возраст</th>
+        <th>Зарплата</th>
+        <th>Город</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>` + this.#rows.map(user => `
+      <tr>
+        <td>${user.name}</td>
+        <td>${user.age}</td>
+        <td>${user.salary}</td>
+        <td>${user.city}</td>
+        <td><button>X</button></td>
+      </tr>              
+            `).join("") + `</tbody>`;
+      
+    return userData;
+  }
+
+  #render() {
+    this.#elem = document.createElement("table");
+    this.#elem.innerHTML = this.#createUserTable();
+
+    for (let button of this.#elem.querySelectorAll("button"))
+      button.addEventListener('click',this.#onRemoveClick);
+
+    return this.#elem;    
+  }
+
+  #onRemoveClick = (event) => {
+    const target = event.target;
+    const row = target.closest('tr');
+
+    row.remove();
+  };
 }

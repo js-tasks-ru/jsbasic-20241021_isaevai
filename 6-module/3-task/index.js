@@ -1,99 +1,96 @@
 import createElement from '../../assets/lib/create-element.js';
 
 export default class Carousel {
+  slides;
+  elem;
+
   constructor(slides) {
     this.slides = slides;
-    this.currentSlideIndex = 0;
-    this.elem = this.render();
-    this.initCarousel();
-    this.addProductEvent();
+    this.elem = this.#render();
+    this.#initCarousel();
   }
 
-  render() {
-    // Создание корневого элемента карусели
-    const carousel = createElement(`
-      <div class="carousel">
-        <div class="carousel__arrow carousel__arrow_right">
-          <img src="/assets/images/icons/angle-icon.svg" alt="icon">
-        </div>
-        <div class="carousel__arrow carousel__arrow_left">
-          <img src="/assets/images/icons/angle-left-icon.svg" alt="icon">
-        </div>
-        <div class="carousel__inner">
-          ${this.slides.map(slide => this.createSlide(slide)).join('')}
-        </div>
+  get elem() {
+    return this.elem;
+  } 
+
+  #createSlide() {
+    let slide = createElement(`
+    <!--Корневой элемент карусели-->
+    <div class="carousel">
+      <!--Кнопки переключения-->
+      <div class="carousel__arrow carousel__arrow_right">
+        <img src="/assets/images/icons/angle-icon.svg" alt="icon">
       </div>
-    `);
-
-    return carousel;
-  }
-
-  createSlide(slide) {
-    return `
-      <div class="carousel__slide" data-id="${slide.id}">
+      <div class="carousel__arrow carousel__arrow_left">
+        <img src="/assets/images/icons/angle-left-icon.svg" alt="icon">
+      </div>
+    
+      <div class="carousel__inner">` +
+      this.slides.map(slide => `
+      <div class="carousel__slide" data-id=${slide.id}
         <img src="/assets/images/carousel/${slide.image}" class="carousel__img" alt="slide">
         <div class="carousel__caption">
-          <span class="carousel__price">€${slide.price.toFixed(2)}</span>
+          <span class="carousel__price">€${slide.price.toFixed(2)}/span>
           <div class="carousel__title">${slide.name}</div>
           <button type="button" class="carousel__button">
             <img src="/assets/images/icons/plus-icon.svg" alt="icon">
-          </button>
-        </div>
+           </button>
       </div>
-    `;
+    </div>`).join("") + `</div>`);
+
+    return slide;
   }
 
-  initCarousel() {
-    const rightArrow = this.elem.querySelector('.carousel__arrow_right');
+  #render(){
+    this.elem = this.#createSlide();
+
+    //Событие при клике на "+"
+    for (let button of this.elem.getElementsByClassName('carousel__button'))
+      button.addEventListener('click', this.#onAddClick);
+
+    return this.elem;
+  }
+
+  #onAddClick = (event) => {
+      const target = event.target;
+      const slide = target.closest('.carousel__slide');
+    
+      let addProductEvent = new CustomEvent("product-add", {
+        detail: slide.dataset.id, 
+        bubbles: true 
+      });
+    
+      this.elem.dispatchEvent(addProductEvent);
+  };
+
+  #initCarousel() {
+    const carousel = this.elem.querySelector('.carousel__inner');
     const leftArrow = this.elem.querySelector('.carousel__arrow_left');
-    const carouselInner = this.elem.querySelector('.carousel__inner');
+    const rightArrow = this.elem.querySelector('.carousel__arrow_right');
 
-    // Изначально скрываем левую стрелку
     leftArrow.style.display = 'none';
+    rightArrow.style.display = '';
 
-    rightArrow.addEventListener('click', () => {
-      this.currentSlideIndex++;
-      this.updateCarousel(carouselInner, rightArrow, leftArrow);
-    });
+    let slideNumber = 0;
+    const lastSlideNumber = carousel.childElementCount - 1;
 
-    leftArrow.addEventListener('click', () => {
-      this.currentSlideIndex--;
-      this.updateCarousel(carouselInner, rightArrow, leftArrow);
-    });
-  }
-
-  updateCarousel(carouselInner, rightArrow, leftArrow) {
-    const slideWidth = carouselInner.querySelector('.carousel__slide').offsetWidth;
-    carouselInner.style.transform = `translateX(-${this.currentSlideIndex * slideWidth}px)`;
-
-    // Показываем/скрываем стрелки
-    if (this.currentSlideIndex === this.slides.length - 1) {
-      rightArrow.style.display = 'none';
-    } else {
-      rightArrow.style.display = '';
+    function moveSlide(slideNumber, slideWidth) {
+      carousel.style.transform = 'translateX(-' + slideWidth * slideNumber + 'px)';
     }
 
-    if (this.currentSlideIndex === 0) {
-      leftArrow.style.display = 'none';
-    } else {
-      leftArrow.style.display = '';
-    }
-  }
+    leftArrow.addEventListener("click", () => {
+      slideNumber--;
+      moveSlide(slideNumber, carousel.offsetWidth);
+      if (slideNumber == 0) leftArrow.style.display = 'none'
+      if (rightArrow.style.display == 'none') rightArrow.style.display = ''
+    })
 
-  addProductEvent() {
-    this.elem.addEventListener('click', (event) => {
-      if (event.target.closest('.carousel__button')) {
-        const slide = event.target.closest('.carousel__slide');
-        const productId = slide.dataset.id;
-
-        const productAddEvent = new CustomEvent('product-add', {
-          detail: productId,
-          bubbles: true
-        });
-
-        this.elem.dispatchEvent(productAddEvent);
-      }
-    });
+    rightArrow.addEventListener("click", () => {
+      slideNumber++;
+      moveSlide(slideNumber, carousel.offsetWidth);
+      if (slideNumber == lastSlideNumber) rightArrow.style.display = 'none'
+      if (leftArrow.style.display == 'none') leftArrow.style.display = ''
+    })
   }
 }
-

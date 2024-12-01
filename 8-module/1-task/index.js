@@ -38,7 +38,53 @@ export default class CartIcon {
     window.addEventListener('resize', () => this.updatePosition());
   }
 
+  #isMobile() {
+    return document.documentElement.clientWidth <= 767;
+  }
+
+  #isHidden() {
+    return !this.elem.offsetWidth;
+  }
+
+  #setInitStyle() {
+    Object.assign(this.elem.style, {
+      position: '',
+      top: '',
+      left: '',
+      zIndex: '',
+    });
+  }
+
+  #setFloatingStyle(leftIndent) {
+    Object.assign(this.elem.style, {
+      position: 'fixed',
+      top: '50px',
+      zIndex: 1e3,
+      right: '10px',
+      left: leftIndent,
+    });
+  }
+
   updatePosition() {
-    // ваш код ...
+    if (this.#isMobile()) {
+      this.#setInitStyle();
+      return;
+    }
+
+    if (!this.initialTopCoord) {
+      this.initialTopCoord = this.elem.getBoundingClientRect().top + window.scrollY;
+    }
+    
+    if (!this.#isHidden()) {
+      if (window.scrollY > this.initialTopCoord) {
+        let leftIndent = Math.min(
+          document.querySelector('.container').getBoundingClientRect().right + 20,
+          document.documentElement.clientWidth - this.elem.offsetWidth - 10
+        ) + 'px';
+        this.#setFloatingStyle(leftIndent);
+      } else {
+        this.#setInitStyle();
+      }
+    }
   }
 }

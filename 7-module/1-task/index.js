@@ -1,112 +1,103 @@
 import createElement from '../../assets/lib/create-element.js';
 
 export default class RibbonMenu {
+  categories;
+  elem;
+
   constructor(categories) {
     this.categories = categories;
-
-    this.render();
-    this.addEventListeners();
-    this.value = '';
+    this.elem = this.#render();
   }
 
-  render() {
-    this.elem = createElement(`
-      <div class="ribbon">
-        <button class="ribbon__arrow ribbon__arrow_left">
-          <img src="/assets/images/icons/angle-icon.svg" alt="icon" />
-        </button>
-        <nav class="ribbon__inner"></nav>
-        <button class="ribbon__arrow ribbon__arrow_right ribbon__arrow_visible">
-          <img src="/assets/images/icons/angle-icon.svg" alt="icon" />
-        </button>
-      </div>
-    `);
+  get elem() {
+    return this.elem;
+  } 
 
-    for (let category of this.categories) {
-      let categoryElem = createElement(`<a href="#" class="ribbon__item"></a>`);
-      categoryElem.textContent = category.name; // insert as text, not as HTML!
-      categoryElem.dataset.id = category.id;
-      this.elem.querySelector('.ribbon__inner').append(categoryElem);
+  #createCategories() {
+    let categories = createElement(`
+    <!--Корневой элемент RibbonMenu-->
+    <div class="ribbon">
+      <!--Кнопка прокрутки влево-->
+      <button class="ribbon__arrow ribbon__arrow_left ribbon__arrow_visible">
+        <img src="/assets/images/icons/angle-icon.svg" alt="icon">
+      </button>
+      <!--Ссылки на категории-->
+      <nav class="ribbon__inner">` +
+      this.categories.map(category => `
+      <a href="#" class="ribbon__item" data-id="${category.id}">${category.name}</a>`).join("") + `
+      </nav>
+  
+      <!--Кнопка прокрутки вправо-->
+      <button class="ribbon__arrow ribbon__arrow_right">
+        <img src="/assets/images/icons/angle-icon.svg" alt="icon">
+      </button></div>`);
+
+    return categories;
+  }
+
+  #render() {
+    this.elem = this.#createCategories();
+
+    //скрываем левую стрелку
+    this.elem.getElementsByClassName('ribbon__arrow_left')[0].classList.remove('ribbon__arrow_visible');
+    //делаем активной первую категорию из списка
+    this.elem.getElementsByClassName('ribbon__item')[0].classList.add('ribbon__item_active');
+
+    this.elem.getElementsByClassName('ribbon__arrow_right')[0].addEventListener('click',this.#onRibbonArrowRightClick);
+    this.elem.getElementsByClassName('ribbon__arrow_left')[0].addEventListener('click',this.#onRibbonArrowLeftClick);
+    this.elem.getElementsByClassName('ribbon__inner')[0].addEventListener('scroll',this.#onRibbonInnerScroll);
+    
+    for (let link of this.elem.getElementsByClassName('ribbon__item'))
+        link.addEventListener('click',this.#onLinkClick); 
+
+    return this.elem;
+  }
+
+  #onRibbonArrowRightClick = () => 
+    this.elem.getElementsByClassName('ribbon__inner')[0].scrollBy(350, 0);
+
+  #onRibbonArrowLeftClick = () => 
+    this.elem.getElementsByClassName('ribbon__inner')[0].scrollBy(-350, 0);
+
+  #onRibbonInnerScroll = () => {
+    let ribbonInner = this.elem.getElementsByClassName('ribbon__inner')[0];
+    let ribbonArrowLeft = this.elem.getElementsByClassName('ribbon__arrow_left')[0];
+    let ribbonArrowRight = this.elem.getElementsByClassName('ribbon__arrow_right')[0];
+
+    let scrollLeft = ribbonInner.scrollLeft;
+    let scrollWidth = ribbonInner.scrollWidth;
+    let clientWidth = ribbonInner.clientWidth;
+    let scrollRight = scrollWidth - scrollLeft - clientWidth;   
+
+    if (scrollLeft == 0)  {
+      ribbonArrowLeft.classList.remove('ribbon__arrow_visible');
+      if (!ribbonArrowRight.contains("ribbon__arrow_visible")) 
+        ribbonArrowRight.classList.add('ribbon__arrow_visible')
     }
 
-    this.sub('item').classList.add('ribbon__item_active');
-  }
-
-  addEventListeners() {
-    this.sub('arrow_left').onclick = (event) => this.onArrowLeftClick(event);
-    this.sub('arrow_right').onclick = (event) => this.onArrowRightClick(event);
-
-    this.elem.onclick = (event) => {
-      let itemElem = event.target.closest('.ribbon__item');
-      if (itemElem) {
-        this.onItemClick(itemElem);
-        event.preventDefault();
-      }
-    };
-
-    this.sub('inner').onscroll = (event) => this.onScroll(event);
-  }
-
-  onArrowRightClick(event) {
-    let offset = 350;
-    this.sub('inner').scrollBy(offset, 0);
-    this.updateArrows();
-  }
-
-  onArrowLeftClick(event) {
-    let offset = 350;
-    this.sub('inner').scrollBy(-offset, 0);
-    this.updateArrows();
-  }
-
-  onItemClick(itemElem) {
-    let oldActive = this.sub('item_active');
-    if (oldActive) {
-      oldActive.classList.remove('ribbon__item_active');
-    }
-
-    itemElem.classList.add('ribbon__item_active');
-
-    this.value = itemElem.dataset.id;
-
-    this.elem.dispatchEvent(
-      new CustomEvent('ribbon-select', {
-        detail: this.value,
-        bubbles: true,
-      })
-    );
-  }
-
-  onScroll(event) {
-    this.updateArrows();
-  }
-
-  sub(ref) {
-    return this.elem.querySelector(`.ribbon__${ref}`);
-  }
-
-  scrollRight() {
-    return this.sub('inner').scrollWidth - (this.sub('inner').scrollLeft + this.sub('inner').clientWidth);
-  }
-
-  scrollLeft() {
-    return this.sub('inner').scrollLeft;
-  }
-
-  updateArrows() {
-    if (this.scrollLeft() > 0) {
-      this.sub('arrow_left').classList.add('ribbon__arrow_visible');
-    } else {
-      this.sub('arrow_left').classList.remove('ribbon__arrow_visible');
-    }
-
-    let scrollRight = this.scrollRight();
-    scrollRight = scrollRight < 1 ? 0 : scrollRight; // Это нужно для ситуации, когда скролл произошел с погрешностью
-    if (scrollRight > 0) {
-      this.sub('arrow_right').classList.add('ribbon__arrow_visible');
-    } else {
-      this.sub('arrow_right').classList.remove('ribbon__arrow_visible');
+    if (scrollRight < 1)  {
+      ribbonArrowRight.classList.remove('ribbon__arrow_visible');
+      if (!ribbonArrowLeft.contains("ribbon__arrow_visible")) 
+        ribbonArrowLeft.classList.add('ribbon__arrow_visible')
     }
   }
 
+  #onLinkClick = (event) => {
+    event.preventDefault();
+
+    const target = event.target;
+    const activeCategory = target.closest('.ribbon__item');
+
+    for (let category of this.elem.getElementsByClassName('ribbon__item'))
+      category.classList.remove('ribbon__item_active');
+
+    activeCategory.classList.add('ribbon__item_active');
+  
+    let clickOnLinkEvent = new CustomEvent('ribbon-select', { 
+      detail: activeCategory.dataset.id, 
+      bubbles: true
+    })
+
+    this.elem.dispatchEvent(clickOnLinkEvent);
+  };
 }
